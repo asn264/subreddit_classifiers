@@ -10,7 +10,7 @@ Total number of subreddits: 50,138
 (Same number by name and by subreddit_id) 
 
 
-Number of Subreddits with Empty Body: 1,275
+Number of Entries with Empty Body: 1,275
 
 
 Subreddit name and number of comments: see subreddit_count.tsv
