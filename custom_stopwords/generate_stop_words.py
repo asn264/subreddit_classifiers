@@ -53,6 +53,6 @@ def get_top_n():
 	'''
 
 	counts = pickle.load(open('counts_1000000.p', 'rb'))
-	counts.most_common(100)
+	print counts.most_common(100)
 
 
