@@ -18,10 +18,12 @@ with sqlite3.connect('database.sqlite') as conn:
 	#cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 	#print (cursor.fetchall())
 
-	table = pd.read_sql_query("SELECT subreddit, COUNT(*) from May2015 GROUP BY subreddit ORDER BY COUNT(*) DESC", conn)
+	#table = pd.read_sql_query("SELECT subreddit, COUNT(*) from May2015 GROUP BY subreddit ORDER BY COUNT(*) DESC", conn)
 	#table = pd.read_sql_query("SELECT COUNT(*) FROM May2015 WHERE LENGTH(body)=0", conn)
+	table = pd.read_sql_query("SELECT * FROM May2015 LIMIT 2", conn)
+	print table
 
-	tot = float(table['COUNT(*)'].sum(axis=0))
-	table['percents'] = table['COUNT(*)']/tot * 100
+	#tot = float(table['COUNT(*)'].sum(axis=0))
+	#table['percents'] = table['COUNT(*)']/tot * 100
 
-	table.to_csv('subreddit_count.tsv', sep='\t')
+	#table.to_csv('subreddit_count.tsv', sep='\t')
