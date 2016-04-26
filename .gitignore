@@ -7,3 +7,11 @@ generate_train_test/X_train.p
 generate_train_test/X_test.p
 generate_train_test/y_train.p
 generate_train_test/y_test.p
+generate_train_test/1000000_250classes/
+generate_train_test/100000_50classes/
+generate_train_test/500000_100classes/
+generate_train_test/data_with_headers.tsv
+generate_train_test/train_test_data.tsv
+results.xlsx
+generate_train_test/generate_train_test.py
+
