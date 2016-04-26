@@ -14,4 +14,4 @@ generate_train_test/data_with_headers.tsv
 generate_train_test/train_test_data.tsv
 results.xlsx
 generate_train_test/generate_train_test.py
-
+*.pyc
