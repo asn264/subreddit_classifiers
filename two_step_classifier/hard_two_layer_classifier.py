@@ -2,7 +2,7 @@ from clustering import *
 from sklearn.tree import DecisionTreeClassifier
 
 
-class two_layer_classifier(object):
+class hard_two_layer_classifier(object):
 
 	'''
 	First run the cluster algorithm. 
@@ -142,8 +142,8 @@ class two_layer_classifier(object):
 
 def main():
 
-	c = two_layer_classifier(5)
-	first_preds, second_preds, second_labels = c.classify(False)
+	c = hard_two_layer_classifier(5)
+	first_preds, second_preds, second_labels = c.classify(pred_on_train=False)
 	print c.second_layer_accuracy(second_labels, second_preds)
 
 
