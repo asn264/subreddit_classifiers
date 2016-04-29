@@ -7,19 +7,9 @@ class soft_two_layer_classifier(object):
 	'''
 	First run the cluster algorithm. 
 	Use the results of clustering to generate new labels for the training data - each comment has a cluster id
-	Classifier 1: predict distribution on the cluster label. Train using y_train_cluster.
-	Classifier 2: get distribution on the subreddit names. 
-	Output a list of top n suggestions. 
-
-	Notes: need to always output top n suggestions, because the single layer classifiers do.
-	Since not every cluster will have n subreddits, need to look to other subreddits. 
-	Option 1: Get as many suggestions as possible from most likely cluster, then look at next best cluster, etc. till you have enough.
-	Option 2: Use the probability distribution on clusters to find a probability for each subreddit as p(cluster)p(subreddit|cluster)
-	Then return the top n according to the global probability for each subreddit. 
-
-	Option 2 is more accurate but slower: always compute subreddit number of items whereas Option 1 doesn't.
-	However given the accuracy hit the algorithm takes at (clustering/first layer prediction?) given our limited dataset/computational ability,
-	Option 2 was a better choice.
+	Classifier 1: predict the cluster label. Train using y_train_cluster.
+	Classifier 2: predict the subreddit name. Train using y_train_subreddit.
+	Output a list of suggestions/predictions for each point. Measure performance by whether this list contains the true label. 
 	'''
 
 	def __init__(self, num_suggestions, num_clusters):
@@ -37,9 +27,6 @@ class soft_two_layer_classifier(object):
 		self.x_train, self.x_test, self.x_train_raw, self.x_test_raw = self.load_x_data()
 		#Subreddit labels and corresponding cluster mappings
 		self.y_train_subreddit, self.y_train_cluster, self.y_test_subreddit, self.y_test_cluster = self.load_y_data()
-
-		#Record the number of distinct classes
-		self.num_subreddits = np.unique(self.y_train_subreddit).size
 
 		#Train the models required for the second-stage prediction, since these will be the same for every call of the classify fn
 		self.second_stage_models = self.train_second_layer_classifiers()
@@ -105,59 +92,87 @@ class soft_two_layer_classifier(object):
 		return models
 
 
+	def second_layer_classifier(self, ongoing_preds, c_cluster_preds, pred_on_train):
+
+		'''Now each cluster only contains a few subreddits. For each cluster, train a model on x_train data within that cluster,
+		and predict a subreddit name (within the cluster).'''
+
+		second_preds = []
+		
+		for i in range(self.num_clusters):
+
+			c_clf = self.second_stage_models[i]
+
+			#Get a list of all the training/testing points predicted to be in this cluster
+			mask = (c_cluster_preds == i) & np.any(ongoing_preds=='0', axis=1)
+			if pred_on_train:
+				c_x_to_pred = self.x_train[mask]
+			else:
+				c_x_to_pred = self.x_test[mask]
+
+			#Now predict the subreddit id for all of these training/testing points 
+			try:
+				new_preds = c_clf.predict_proba(c_x_to_pred)
+				new_preds_names = c_clf.classes_[np.argsort(-new_preds)]
+
+				#Get the rankings to tell you the most likely class
+				print ongoing_preds
+
+				curr_pred = 0
+				for i in range(len(mask)):
+					if mask[i]:
+						#print ongoing_preds[i]
+						ongoing_preds[i] = new_preds_names[curr_pred]
+						print new_preds_names[curr_pred]
+						#print ongoing_preds[i]
+						curr_pred += 1
+
+				#Glue it onto ongoing preds appropriately
+
+				#print self.clusters[i]
+
+			#If nothing was predicted to be in the current cluster, then c_x_test is empty and a ValueError will be raised
+			except ValueError:
+				pass
+
+		return second_preds
+
+
+
 	def classify(self, pred_on_train):
 
-		final_preds = None
+		first_preds = self.first_layer_classifier(pred_on_train)
 
-		#Soft predictions on the cluster classification of x_pred
-		cluster_preds = self.first_layer_classifier(pred_on_train)
-
+		#Each row is a ranking of the top n predicted clusters for that element. Give n = num_suggestions.
+		cluster_preds = (-first_preds).argsort(axis=1)[:,0:self.num_suggestions]
+				
+		#So as long as these arrays still contain the string 'still_needs_pred', we have to generate more second_preds
 		if pred_on_train:
-			num_iter = len(self.x_train_raw)
+			final_preds = np.chararray((len(self.x_train_raw),self.num_suggestions), itemsize=50)
 		else:
-			num_iter = len(self.x_test_raw)
+			final_preds = np.chararray((len(self.x_test_raw),self.num_suggestions), itemsize=50)
+		final_preds[:] = '0'
 
-		#Manually loop by data point to be predicted
-		for curr_x in range(num_iter):
+		i = 0
+		#In each iteration you are looking at the ith most likely cluster prediction
+		while np.sum(np.ravel(final_preds)=='0') > 0:
+			self.second_layer_classifier(final_preds, cluster_preds[:,i], pred_on_train)
+			i += 1
+			sys.exit()
 
-			curr_probs = np.array([])
-			curr_labels = np.array([])
-			
-			#Loop through each cluster
-			for c_cluster in range(self.num_clusters):
-
-				c_clf =  self.second_stage_models[c_cluster]
-
-				if pred_on_train:
-					new_probs = c_clf.predict_proba(self.x_train[curr_x])*cluster_preds[curr_x][c_cluster]
-				else:
-					new_probs = c_clf.predict_proba(self.x_test[curr_x])*cluster_preds[curr_x][c_cluster]
-
-				#Append new_probs to curr_probs
-				curr_probs = np.append(curr_probs, new_probs)
-				#Append new_labels to curr_labels
-				curr_labels = np.append(curr_labels, c_clf.classes_)
-
-			#Now get the top num_suggestions
-			if final_preds is None:
-				final_preds = curr_labels[np.argsort(-curr_probs)][:self.num_suggestions]
-			else:
-				final_preds = np.vstack((final_preds,curr_labels[np.argsort(-curr_probs)][:self.num_suggestions]))
-
-		#Get the top num_suggestions classifications and store
-		return final_preds
 
 
 	def top_n_accuracy(self, labels, preds):
 
 		'''For each point, consider a list of size n, and consider the prediction correct if the list contains the correct label anywhere.'''
 
-		return sum(np.in1d(labels,preds))/float(len(labels))
+		pass
+
 
 def main():
 
 	c = soft_two_layer_classifier(num_suggestions=2, num_clusters=5)
-	print c.classify(pred_on_train=True)
+	c.classify(pred_on_train=True)
 
 
 if __name__ == "__main__":
