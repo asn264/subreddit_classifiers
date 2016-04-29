@@ -108,6 +108,49 @@ class soft_two_layer_classifier(object):
 
 	def classify(self, pred_on_train):
 
+		final_preds = None
+
+		#Soft predictions on the cluster classification of x_pred
+		cluster_preds = self.first_layer_classifier(pred_on_train)
+
+		if pred_on_train:
+			num_iter = len(self.x_train_raw)
+		else:
+			num_iter = len(self.x_test_raw)
+
+		#Manually loop by data point to be predicted
+		for curr_x in range(num_iter):
+
+			curr_probs = np.array([])
+			curr_labels = np.array([])
+			
+			#Loop through each cluster
+			for c_cluster in range(self.num_clusters):
+
+				c_clf =  self.second_stage_models[c_cluster]
+
+				if pred_on_train:
+					new_probs = c_clf.predict_proba(self.x_train[curr_x])*cluster_preds[curr_x][c_cluster]
+				else:
+					new_probs = c_clf.predict_proba(self.x_test[curr_x])*cluster_preds[curr_x][c_cluster]
+
+				#Append new_probs to curr_probs
+				curr_probs = np.append(curr_probs, new_probs)
+				#Append new_labels to curr_labels
+				curr_labels = np.append(curr_labels, c_clf.classes_)
+
+			#Now get the top num_suggestions
+			if final_preds is None:
+				final_preds = curr_labels[np.argsort(-curr_probs)][:self.num_suggestions]
+			else:
+				final_preds = np.vstack((final_preds,curr_labels[np.argsort(-curr_probs)][:self.num_suggestions]))
+
+		#Get the top num_suggestions classifications and store
+		return final_preds
+
+
+	def classify_new(self, pred_on_train):
+
 		'''
 		Look at matrix formulation in notebook.		
 		'''
@@ -144,8 +187,10 @@ class soft_two_layer_classifier(object):
 				final_probs = np.hstack((final_probs, new_probs))
 				final_labels = np.hstack((final_labels, c_clf.classes_))
 
-		return self.get_top_n(final_probs,final_labels)
+		#print final_probs
+		#print final_labels
 
+		return self.get_top_n(final_probs,final_labels)
 
 	def get_top_n(self, probs, labels):
 
@@ -163,13 +208,15 @@ class soft_two_layer_classifier(object):
 
 		'''For each point, consider a list of size n, and consider the prediction correct if the list contains the correct label anywhere.'''
 
-		return sum(np.in1d(labels,preds))/float(len(labels))
+		print labels
+		print preds
 
+		return sum(np.in1d(labels,preds))/float(len(labels))
 
 def main():
 
 	c = soft_two_layer_classifier(num_suggestions=5, num_clusters=5)
-	x = c.classify(pred_on_train=True)
+	x = c.classify_new(pred_on_train=True)
 	print c.top_n_accuracy(c.y_train_subreddit,x)
 
 if __name__ == "__main__":
