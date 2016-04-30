@@ -23,7 +23,13 @@ class soft_two_layer_classifier(object):
 	Option 2 was a better choice.
 	'''
 
-	def __init__(self, num_suggestions, num_clusters):
+	def __init__(self, num_suggestions, num_clusters, x_train_file, x_test_file, y_train_file, y_test_file):
+
+		#Simplify training/development process...
+		self.x_train_file = x_train_file
+		self.x_test_file = x_test_file
+		self.y_train_file = y_train_file
+		self.y_test_file = y_test_file
 
 		#For each point, emit a list of ranked predictions
 		self.num_suggestions = num_suggestions
@@ -49,8 +55,8 @@ class soft_two_layer_classifier(object):
 	def load_x_data(self):
 
 		#Load the training data and convert to TF-IDF
-		x_train_raw = pickle.load(open('../generate_train_test/X_train.p', 'rb'))
-		x_test_raw = pickle.load(open('../generate_train_test/X_test.p', 'rb'))
+		x_train_raw = pickle.load(open(self.x_train_file, 'rb'))
+		x_test_raw = pickle.load(open(self.x_test_file, 'rb'))
 
 		tfidf_vectorizer = TfidfVectorizer(stop_words='english', min_df=1, smooth_idf=True).fit(x_train_raw)
 		x_train = tfidf_vectorizer.transform(x_train_raw)
@@ -62,8 +68,8 @@ class soft_two_layer_classifier(object):
 	def load_y_data(self):
 
 		#Load the subreddit labels
-		y_train_subreddit = pickle.load(open('../generate_train_test/y_train.p', 'rb'))
-		y_test_subreddit = pickle.load(open('../generate_train_test/y_test.p', 'rb'))
+		y_train_subreddit = pickle.load(open(self.y_train_file, 'rb'))
+		y_test_subreddit = pickle.load(open(self.y_test_file, 'rb'))
 
 		#Map the subreddit labels to the appropriate cluster label
 		y_train_cluster = np.zeros(len(y_train_subreddit))
@@ -166,9 +172,29 @@ class soft_two_layer_classifier(object):
 		return sum(np.in1d(labels,preds))/float(len(labels))
 
 
+	def first_layer_hard_accuracy(self,pred_on_train):
+
+		'''Might be useful to know how well the first layer classifer performs for 0-1 loss'''
+
+		clf = DecisionTreeClassifier()
+		clf = clf.fit(self.x_train, self.y_train_cluster)
+		if pred_on_train:
+			return sum(np.equal(self.y_train_cluster,clf.predict(self.x_train)))/float(len(self.y_train_cluster))
+		else:
+			return sum(np.equal(self.y_train_subreddit,clf.predict(self.x_test)))/float(len(self.y_train_subreddit))
+
+
 def main():
 
-	c = soft_two_layer_classifier(num_suggestions=5, num_clusters=5)
+	#x = c.classify(pred_on_train=True)
+	#print c.top_n_accuracy(c.y_train_subreddit,x)
+
+	x_train = '../generate_train_test/X_train.p'
+	x_test = '../generate_train_test/X_test.p'
+	y_train = '../generate_train_test/y_train.p'
+	y_test = '../generate_train_test/y_test.p'
+	c = soft_two_layer_classifier(num_suggestions=5, num_clusters=5, x_train_file=x_train, x_test_file=x_test, y_train_file=y_train, y_test_file=y_test)
+	print c.first_layer_hard_accuracy(pred_on_train=True)
 	x = c.classify(pred_on_train=True)
 	print c.top_n_accuracy(c.y_train_subreddit,x)
 
