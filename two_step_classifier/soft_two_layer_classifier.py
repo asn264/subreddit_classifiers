@@ -1,3 +1,4 @@
+from importlib import import_module
 import bottleneck as bn
 from clustering import *
 from sklearn.tree import DecisionTreeClassifier
@@ -91,7 +92,7 @@ class soft_two_layer_classifier(object):
 
 		'''Train a classifier on x_train and y_train_cluster'''
 
-		clf = DecisionTreeClassifier()
+		clf = DecisionTreeClassifier()		
 		clf = clf.fit(self.x_train, self.y_train_cluster)
 		if pred_on_train:
 			return clf.predict_proba(self.x_train)
@@ -186,17 +187,17 @@ class soft_two_layer_classifier(object):
 
 def main():
 
-	#x = c.classify(pred_on_train=True)
-	#print c.top_n_accuracy(c.y_train_subreddit,x)
-
 	x_train = '../generate_train_test/X_train.p'
 	x_test = '../generate_train_test/X_test.p'
 	y_train = '../generate_train_test/y_train.p'
 	y_test = '../generate_train_test/y_test.p'
+	
 	c = soft_two_layer_classifier(num_suggestions=5, num_clusters=5, x_train_file=x_train, x_test_file=x_test, y_train_file=y_train, y_test_file=y_test)
+	
 	print c.first_layer_hard_accuracy(pred_on_train=True)
 	x = c.classify(pred_on_train=True)
 	print c.top_n_accuracy(c.y_train_subreddit,x)
+
 
 if __name__ == "__main__":
     main()
