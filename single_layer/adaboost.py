@@ -1,10 +1,12 @@
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cross_validation import train_test_split
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.linear_model import LogisticRegression
 
 import time
 import sys
@@ -46,20 +48,19 @@ time_elapsed = time.time() - start_time
 print "TFIDF: " + str(time_elapsed/60) + " minutes"
 start_time = time.time()
 
-
 train_precisions = []
 validate_precisions = []
 
+ada_clf = AdaBoostClassifier(base_estimator=LogisticRegression(penalty='l2',multi_class='ovr'),n_estimators=30)
 
-rf_clf = RandomForestClassifier()
-rf_clf.fit(X_train_tfidf,le_y_train)
+ada_clf.fit(X_train_tfidf,le_y_train)
 
 time_elapsed = time.time() - start_time
 print "Fitting: " + str(time_elapsed/60) + " minutes"
 
 
-train_pred_probs = rf_clf.predict_proba(X_train_tfidf)
-val_pred_probs = rf_clf.predict_proba(X_validate_tfidf)
+train_pred_probs = ada_clf.predict_proba(X_train_tfidf)
+val_pred_probs = ada_clf.predict_proba(X_validate_tfidf)
 
 
 #suggest the k most likely classes, then calculate top-k precision for training data
@@ -83,6 +84,24 @@ for i in range(len(y_validate)):
 
 validate_precisions.append(100.0*correct/len(y_validate))
 
-
+print c_values
 print train_precisions
 print validate_precisions
+
+"""
+#Now plot            
+fig = plt.figure()
+ax=fig.add_subplot(111)
+
+plt.plot(c_values,train_precisions,'b-',label='Training precisions')
+plt.plot(c_values,validate_precisions,'r-',label = 'Validation precisions')
+
+#set scale of x-axis to log-scale
+plt.xscale('log')
+
+#set axis labels and title
+ax.set_xlabel('C (regularization parameter)')
+ax.set_ylabel('Precision')
+plt.legend(loc=1)
+plt.title('Train/Validation Precision for Various C Values')
+plt.savefig('log_reg.png')"""

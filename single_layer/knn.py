@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cross_validation import train_test_split
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 import time
 import sys
@@ -46,43 +46,65 @@ time_elapsed = time.time() - start_time
 print "TFIDF: " + str(time_elapsed/60) + " minutes"
 start_time = time.time()
 
+#vary number of neighbors used
+#k_values = 4**np.linspace(1,5,5)
+k_values = [2]
 
 train_precisions = []
 validate_precisions = []
 
+for k in k_values:
 
-rf_clf = RandomForestClassifier()
-rf_clf.fit(X_train_tfidf,le_y_train)
+	knn_clf = KNeighborsClassifier(n_neighbors=k,weights='distance')
+	knn_clf.fit(X_train_tfidf,le_y_train)
 
-time_elapsed = time.time() - start_time
-print "Fitting: " + str(time_elapsed/60) + " minutes"
-
-
-train_pred_probs = rf_clf.predict_proba(X_train_tfidf)
-val_pred_probs = rf_clf.predict_proba(X_validate_tfidf)
+	time_elapsed = time.time() - start_time
+	print "Fitting: " + str(time_elapsed/60) + " minutes"
 
 
-#suggest the k most likely classes, then calculate top-k precision for training data
-correct = 0
-for i in range(len(y_train)):
-	k_choices = top_k_predictions(5,train_pred_probs[i])
+	train_pred_probs = knn_clf.predict_proba(X_train_tfidf)
+	val_pred_probs = knn_clf.predict_proba(X_validate_tfidf)
 
-	if le_y_train[i] in k_choices:
-		correct+=1
+	
+	#suggest the k most likely classes, then calculate top-k precision for training data
+	correct = 0
+	for i in range(len(y_train)):
+		k_choices = top_k_predictions(5,train_pred_probs[i])
 
-train_precisions.append(100.0*correct/len(y_train))
+		if le_y_train[i] in k_choices:
+			correct+=1
 
+	train_precisions.append(100.0*correct/len(y_train))
+	
 
-#suggest the k most likely classes, then calculate top-k precision for validation data
-correct = 0
-for i in range(len(y_validate)):
-	k_choices = top_k_predictions(5,val_pred_probs[i])
+	#suggest the k most likely classes, then calculate top-k precision for validation data
+	correct = 0
+	for i in range(len(y_validate)):
+		k_choices = top_k_predictions(5,val_pred_probs[i])
 
-	if le_y_validate[i] in k_choices:
-		correct+=1
+		if le_y_validate[i] in k_choices:
+			correct+=1
 
-validate_precisions.append(100.0*correct/len(y_validate))
+	validate_precisions.append(100.0*correct/len(y_validate))
 
-
+print k_values
 print train_precisions
 print validate_precisions
+
+"""
+#Now plot            
+fig = plt.figure()
+ax=fig.add_subplot(111)
+
+plt.plot(k_values,train_precisions,'b-',label='Training precisions')
+plt.plot(k_values,validate_precisions,'r-',label = 'Validation precisions')
+
+#set scale of x-axis to log-scale
+plt.xscale('log')
+
+#set axis labels and title
+ax.set_xlabel('K (nearest neighbors)')
+ax.set_ylabel('Precision')
+plt.legend(loc=1)
+plt.title('Train/Validation Precision for Various K Values')
+plt.savefig('knn.png')"""
