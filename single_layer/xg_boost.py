@@ -1,10 +1,15 @@
+"""
+Installing XGBoost: https://github.com/dmlc/xgboost/blob/master/demo/guide-python/basic_walkthrough.py
+Documentation: https://github.com/dmlc/xgboost/blob/master/python-package/xgboost/sklearn.py
+"""
+
 import pickle
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cross_validation import train_test_split
 
-from sklearn.ensemble import RandomForestClassifier
+import xgboost as xgb
 
 import time
 import sys
@@ -23,9 +28,6 @@ X_train = pickle.load( open("../generate_train_test/final_dataset/X_train.p",'rb
 X_test = pickle.load( open("../generate_train_test/final_dataset/X_test.p",'rb'))
 y_train = pickle.load( open("../generate_train_test/final_dataset/y_train.p",'rb'))
 y_test = pickle.load( open("../generate_train_test/final_dataset/y_test.p",'rb'))
-
-#split into train and validation
-X_train, X_validate, y_train, y_validate = train_test_split(X_train, y_train, test_size=0.25, random_state=0)
 
 start_time = time.time()
 
@@ -46,20 +48,17 @@ time_elapsed = time.time() - start_time
 print "TFIDF: " + str(time_elapsed/60) + " minutes"
 start_time = time.time()
 
-
 train_precisions = []
 validate_precisions = []
 
-
-rf_clf = RandomForestClassifier()
-rf_clf.fit(X_train_tfidf,le_y_train)
+gbm_clf = xgb.XGBClassifier(max_depth=3, n_estimators=100, learning_rate=0.1,objective="multi:softprob")
+gbm_clf.fit(X_train_tfidf,le_y_train)
 
 time_elapsed = time.time() - start_time
 print "Fitting: " + str(time_elapsed/60) + " minutes"
 
-
-train_pred_probs = rf_clf.predict_proba(X_train_tfidf)
-val_pred_probs = rf_clf.predict_proba(X_validate_tfidf)
+train_pred_probs = gbm_clf.predict_proba(X_train_tfidf)
+val_pred_probs = gbm_clf.predict_proba(X_validate_tfidf)
 
 
 #suggest the k most likely classes, then calculate top-k precision for training data
@@ -82,7 +81,6 @@ for i in range(len(y_validate)):
 		correct+=1
 
 validate_precisions.append(100.0*correct/len(y_validate))
-
 
 print train_precisions
 print validate_precisions
