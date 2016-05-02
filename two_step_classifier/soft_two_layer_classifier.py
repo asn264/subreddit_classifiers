@@ -25,7 +25,6 @@ class soft_two_layer_classifier(object):
 	Option 2 was a better choice.
 	'''
 
-	#def __init__(self, num_suggestions, num_clusters,  top_n_tfidf, x_train_file, x_test_file, y_train_file, y_test_file):
 	def __init__(self, cluster_method, cluster_params, num_suggestions, x_train_file, x_test_file, y_train_file, y_test_file):
 
 		#Simplify training/development process...
@@ -189,7 +188,7 @@ class soft_two_layer_classifier(object):
 
 		ct = 0
 		for i in range(len(labels)):
-			if np.in1d(labels[i],preds):
+			if np.in1d(labels[i],preds[i]):
 				ct += 1
 
 		return ct/float(len(labels))
