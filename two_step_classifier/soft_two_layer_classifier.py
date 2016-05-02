@@ -2,7 +2,8 @@ from importlib import import_module
 import bottleneck as bn
 from clustering import *
 from sklearn.tree import DecisionTreeClassifier
-
+from sklearn.svm import SVC
+import sys
 
 class soft_two_layer_classifier(object):
 
@@ -24,7 +25,8 @@ class soft_two_layer_classifier(object):
 	Option 2 was a better choice.
 	'''
 
-	def __init__(self, num_suggestions, num_clusters, x_train_file, x_test_file, y_train_file, y_test_file):
+	#def __init__(self, num_suggestions, num_clusters,  top_n_tfidf, x_train_file, x_test_file, y_train_file, y_test_file):
+	def __init__(self, cluster_method, cluster_params, num_suggestions, x_train_file, x_test_file, y_train_file, y_test_file):
 
 		#Simplify training/development process...
 		self.x_train_file = x_train_file
@@ -35,11 +37,16 @@ class soft_two_layer_classifier(object):
 		#For each point, emit a list of ranked predictions
 		self.num_suggestions = num_suggestions
 
-		#Clustering tools and information
-		self.num_clusters = num_clusters
-		#Generate clusters immediately and store the tool for later use
-		self.c = clustering(num_clusters)
-		self.clusters = self.c.get_clusters()
+		if cluster_method == 'manual':
+			self.num_clusters = len(cluster_params)
+			self.clusters = cluster_params
+
+		else:
+			#Clustering tools and information
+			self.num_clusters = cluster_params[0]
+			#Generate clusters immediately and store the tool for later use
+			self.c = clustering(cluster_params[0], cluster_params[1])
+			self.clusters = self.c.get_clusters()
 
 		#Smoothed tfidf representations of x values
 		self.x_train, self.x_test, self.x_train_raw, self.x_test_raw = self.load_x_data()
@@ -95,8 +102,10 @@ class soft_two_layer_classifier(object):
 		clf = DecisionTreeClassifier()		
 		clf = clf.fit(self.x_train, self.y_train_cluster)
 		if pred_on_train:
+			print 'First layer accuracy: ', clf.score(self.x_train, self.y_train_cluster)
 			return clf.predict_proba(self.x_train)
 		else:
+			print 'First layer accuracy: ', clf.score(self.x_test, self.y_test_cluster)
 			return clf.predict_proba(self.x_test)
 
 
@@ -107,8 +116,16 @@ class soft_two_layer_classifier(object):
 		for i in range(self.num_clusters):
 			c_x_train = self.x_train[np.where(self.y_train_cluster == i)]
 			c_y_train_subreddit = self.y_train_subreddit[np.where(self.y_train_cluster == i)]
-			clf = DecisionTreeClassifier()
-			models.append(clf.fit(c_x_train, c_y_train_subreddit))
+
+			try:
+				clf = DecisionTreeClassifier()
+				models.append(clf.fit(c_x_train, c_y_train_subreddit))
+
+			except ValueError:
+				#Some sklearn models won't train the model if the training set has only one class - but Decision Trees will
+				#Using sklearn's Decision Tree tool allows us to conveniently use sklearn predict_proba and classes_ functions below
+				clf = DecisionTreeClassifier()
+				models.append(clf.fit(c_x_train, c_y_train_subreddit))
 
 		return models
 
@@ -170,7 +187,12 @@ class soft_two_layer_classifier(object):
 
 		'''For each point, consider a list of size n, and consider the prediction correct if the list contains the correct label anywhere.'''
 
-		return sum(np.in1d(labels,preds))/float(len(labels))
+		ct = 0
+		for i in range(len(labels)):
+			if np.in1d(labels[i],preds):
+				ct += 1
+
+		return ct/float(len(labels))
 
 
 	def first_layer_hard_accuracy(self,pred_on_train):
@@ -182,7 +204,7 @@ class soft_two_layer_classifier(object):
 		if pred_on_train:
 			return sum(np.equal(self.y_train_cluster,clf.predict(self.x_train)))/float(len(self.y_train_cluster))
 		else:
-			return sum(np.equal(self.y_train_subreddit,clf.predict(self.x_test)))/float(len(self.y_train_subreddit))
+			return sum(np.equal(self.y_test_cluster,clf.predict(self.x_test)))/float(len(self.y_test_cluster))
 
 
 def main():
@@ -191,12 +213,16 @@ def main():
 	x_test = '../generate_train_test/X_test.p'
 	y_train = '../generate_train_test/y_train.p'
 	y_test = '../generate_train_test/y_test.p'
+
+	#Usage: cluster_params = [num_cluster, top_n_tfidf]
+	c = soft_two_layer_classifier(cluster_method='new', cluster_params=[5,100], num_suggestions=5,x_train_file=x_train, x_test_file=x_test, y_train_file=y_train, y_test_file=y_test)
+	x = c.classify(pred_on_train=False)
+	print c.top_n_accuracy(c.y_test_subreddit,x)
+
+	#Usage: if cluster_method='manual', then in cluster_params, pass the list of lists containing the actual clusters: one list per cluster, containing subreddit names
+	cluster_example = [['funny', 'todayilearned', 'nfl', 'pics', 'news'], ['videos'], ['AskReddit'], ['leagueoflegends'], ['pcmasterrace']]
+	c2 = soft_two_layer_classifier(cluster_method='manual', cluster_params=cluster_example, num_suggestions=5,x_train_file=x_train, x_test_file=x_test, y_train_file=y_train, y_test_file=y_test)
 	
-	c = soft_two_layer_classifier(num_suggestions=5, num_clusters=5, x_train_file=x_train, x_test_file=x_test, y_train_file=y_train, y_test_file=y_test)
-	
-	print c.first_layer_hard_accuracy(pred_on_train=True)
-	x = c.classify(pred_on_train=True)
-	print c.top_n_accuracy(c.y_train_subreddit,x)
 
 
 if __name__ == "__main__":
