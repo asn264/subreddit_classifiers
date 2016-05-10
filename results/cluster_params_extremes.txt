@@ -1,0 +1,60 @@
+5,10
+Top-k precision on train set: 0.780164683135
+Top-k precision on test set: 0.625216269464
+Total time: 4.85673904816 minutes
+
+7,10
+Top-k precision on train set: 0.779651298463
+Top-k precision on test set: 0.625846326169
+Total time: 5.04401155313 minutes
+
+9,10
+Top-k precision on train set: 0.779234590126
+Top-k precision on test set: 0.625276274865
+Total time: 4.66190794706 minutes
+
+11,10
+Top-k precision on train set: 0.780011334467
+Top-k precision on test set: 0.625996339671
+Total time: 4.79203641415 minutes
+
+13,10
+Top-k precision on train set: 0.781464813148
+Top-k precision on test set: 0.624906241562
+Total time: 4.8738741835 minutes
+
+15,10
+Top-k precision on train set: 0.778737873787
+Top-k precision on test set: 0.626286365773
+Total time: 5.93762165308 minutes
+
+5,500
+Top-k precision on train set: 0.782288228823
+Top-k precision on test set: 0.632956966127
+Total time: 5.51963450114 minutes
+
+7,500
+Top-k precision on train set: 0.782994966163
+Top-k precision on test set: 0.63336700303
+Total time: 4.95259174903 minutes
+
+9,500
+Top-k precision on train set: 0.782808280828
+Top-k precision on test set: 0.628296546689
+Total time: 4.7530528148 minutes
+
+11,500
+Top-k precision on train set: 0.783134980165
+Top-k precision on test set: 0.632396915722
+Total time: 5.12737431924 minutes
+
+13,500
+Top-k precision on train set: 0.782248224822
+Top-k precision on test set: 0.628206538588
+Total time: 5.11049607992 minutes
+
+15,500
+Top-k precision on train set: 0.782718271827
+Top-k precision on test set: 0.630546749207
+Total time: 5.59037189881 minutes
+

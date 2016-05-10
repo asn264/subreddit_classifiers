@@ -48,8 +48,8 @@ class clustering(object):
 		'''
 
 		#Create a very small pickle file to test this out on. 
-		x_train = pickle.load(open('../generate_train_test/X_train.p', 'rb'))
-		y_train = pickle.load(open('../generate_train_test/y_train.p', 'rb'))
+		x_train = pickle.load(open('../generate_train_test/final_dataset/X_train.p', 'rb'))
+		y_train = pickle.load(open('../generate_train_test/final_dataset/y_train.p', 'rb'))
 
 		#Keys are subreddits, values are strings containing appended comments data.
 		corpus = {}

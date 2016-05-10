@@ -1,0 +1,5 @@
+10,250
+Top-k precision on train set: 0.448938227156
+Top-k precision on test set: 0.414507305658
+Total time: 1503.68500894 minutes
+
